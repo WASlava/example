@@ -1,0 +1,102 @@
+services:
+  backend:
+    depends_on:
+      - db
+      - influxdb
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=db;Database=exampleDb;User=root;Password=root;
+      - INFLUXDB_URL=http://influxdb:8086
+      - INFLUXDB_BUCKET=exampleBucket
+      - INFLUXDB_ORG=exampleOrg
+      - INFLUXDB_TOKEN=PbpWJili_BiDFOqq1_xxwSciZzWChnYdD_n7qtVyUY29ayJeX13ikh6G4ihAmcd_j3Q4lZLC7bj3xg9cYFEt-g==
+    ports:
+      - "5000:80"
+    networks:
+      - app-network
+
+  client:
+    ports:
+      - "5001:3000"  
+    networks:
+      - app-network
+
+  proxy:
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - backend
+      - client
+    ports:
+      - "80:80"
+    networks:
+      - app-network
+
+  
+  db:
+    image: mysql:8
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: exampleDb
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - app-network
+
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    restart: always
+    depends_on:
+      - db
+    environment:
+      PMA_HOST: db
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "8080:80"
+    networks:
+      - app-network
+
+
+  influxdb:
+    ports:
+      - "8086:8086"
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=adminpassword
+      - DOCKER_INFLUXDB_INIT_ORG=exampleOrg
+      - DOCKER_INFLUXDB_INIT_BUCKET=exampleBucket
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=PbpWJili_BiDFOqq1_xxwSciZzWChnYdD_n7qtVyUY29ayJeX13ikh6G4ihAmcd_j3Q4lZLC7bj3xg9cYFEt-g==
+    volumes:
+      - influxdb_data:/var/lib/influxdb
+    networks:
+      - app-network
+
+  grafana:
+    ports:
+      - "3000:3000"
+    depends_on:
+      - influxdb
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - app-network
+
+volumes:
+  mysql_data:
+  influxdb_data:
+  grafana_data:
+
+networks:
+  app-network:
+    driver: bridge  

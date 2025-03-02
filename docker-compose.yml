@@ -1,0 +1,23 @@
+services:
+  backend:
+    image: ${DOCKER_REGISTRY-}example
+    build:
+      context: .
+      dockerfile: example/Dockerfile
+    
+
+  client:
+    image: client
+    build:
+      context: ./example-client
+      dockerfile: Dockerfile
+
+  proxy:
+    image: nginx:mainline
+
+  influxdb:
+    image: influxdb:2.7
+  
+  grafana:
+    image: grafana/grafana
+    restart: always
